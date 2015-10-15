@@ -894,6 +894,7 @@
 			if (this.isExpired) return true;
 			var gameObjects = [];
 			var solidGameObjects = [];
+            var triggerGameObjects = [];
 
 			for (var i = 0; i < this.gameObjects.length; ++i) {
 				var gameObject = this.gameObjects[i];
@@ -902,13 +903,18 @@
 				if (gameObject.sync()) {
 					if (gameObject.getEssential()) this.expire();
 				} else {
-					if (gameObject.getSolid()) solidGameObjects.push(gameObject);
+					if (gameObject.getSolid()) {
+                        solidGameObjects.push(gameObject);
+                    } else if (gameObject.getTrigger()) {
+                        triggerGameObjects.push(gameObject);
+                    }
 					gameObjects.push(gameObject);
 					Quick.paint(gameObject, gameObject.getLayerIndex());
 				}
 			}
 
 			checkCollisions(solidGameObjects);
+            checkTriggerCollisions(triggerGameObjects);
 			this.gameObjects = gameObjects.concat(this.nextObjects);
 			this.nextObjects = [];
 			if (++this.tick == this.expiration) this.expire();
@@ -971,6 +977,23 @@
 				}
 			}
 		}
+        
+        function checkTriggerCollisions(gameObjects) {
+            var length = gameObjects.length;
+
+			for (var i = 0; i < length - 1; ++i) {
+				var leftGameObject = gameObjects[i];
+
+				for (var j = i + 1; j < length; ++j) {
+					var rightGameObject = gameObjects[j];
+
+					if (leftGameObject.hasCollision(rightGameObject)) {
+						leftGameObject.onTrigger(rightGameObject);
+						rightGameObject.onTrigger(leftGameObject);
+					}
+				}
+			}
+        }
 
 		return Scene;
 
@@ -1595,6 +1618,7 @@
 			this.expiration = -1;
 			this.isExpired = false;
 			this.isSolid = false;
+            this.isTrigger = false;
 			this.isVisible = true;
 			this.scene = null;
 			this.tags = {};
@@ -1632,6 +1656,10 @@
 		GameObject.prototype.getSolid = function () {
 			return this.isSolid;
 		};
+        
+        GameObject.prototype.getTrigger = function () {
+            return this.isTrigger;
+        };
 
 		GameObject.prototype.getTick = function () {
 			return this.tick;
@@ -1648,6 +1676,10 @@
 		GameObject.prototype.onCollision = function (gameObject) {
 			this.delegate && this.delegate.onCollision && this.delegate.onCollision(gameObject);
 		};
+        
+        GameObject.prototype.onTrigger = function (gameObject) {
+            this.delegate && this.delegate.onTrigger && this.delegate.onTrigger(gameObject);
+        };
 
 		GameObject.prototype.setColor = function (color) {
 			this.color = color;
@@ -1668,6 +1700,10 @@
 		GameObject.prototype.setSolid = function (isSolid) {
 			this.isSolid = isSolid == undefined || isSolid;
 		};
+        
+        GameObject.prototype.setTrigger = function (isTrigger) {
+            this.isTrigger = isTrigger == undefined || isTrigger;
+        };
 
 		GameObject.prototype.setVisible = function (isVisible) {
 			this.isVisible = isVisible == undefined || isVisible;

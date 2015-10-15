@@ -894,8 +894,7 @@
 			if (this.isExpired) return true;
 			var gameObjects = [];
 			var solidGameObjects = [];
-            var triggerGameObjects = [];
-
+            
 			for (var i = 0; i < this.gameObjects.length; ++i) {
 				var gameObject = this.gameObjects[i];
 				gameObject.update();
@@ -903,10 +902,8 @@
 				if (gameObject.sync()) {
 					if (gameObject.getEssential()) this.expire();
 				} else {
-					if (gameObject.getSolid()) {
+					if (gameObject.getSolid() || gameObject.getTrigger()) {
                         solidGameObjects.push(gameObject);
-                    } else if (gameObject.getTrigger()) {
-                        triggerGameObjects.push(gameObject);
                     }
 					gameObjects.push(gameObject);
 					Quick.paint(gameObject, gameObject.getLayerIndex());
@@ -914,7 +911,6 @@
 			}
 
 			checkCollisions(solidGameObjects);
-            checkTriggerCollisions(triggerGameObjects);
 			this.gameObjects = gameObjects.concat(this.nextObjects);
 			this.nextObjects = [];
 			if (++this.tick == this.expiration) this.expire();
@@ -971,30 +967,21 @@
 					var rightGameObject = gameObjects[j];
 
 					if (leftGameObject.hasCollision(rightGameObject)) {
-						leftGameObject.onCollision(rightGameObject);
-						rightGameObject.onCollision(leftGameObject);
+                        if (leftGameObject.getSolid()) {
+                            leftGameObject.onCollision(rightGameObject);
+                        } else {
+                            leftGameObject.onTrigger(rightGameObject);
+                        }
+                        if (rightGameObject.getSolid()) {
+                            rightGameObject.onCollision(leftGameObject);
+                        } else {
+                            rightGameObject.onTrigger(leftGameObject);
+                        }
 					}
 				}
 			}
 		}
         
-        function checkTriggerCollisions(gameObjects) {
-            var length = gameObjects.length;
-
-			for (var i = 0; i < length - 1; ++i) {
-				var leftGameObject = gameObjects[i];
-
-				for (var j = i + 1; j < length; ++j) {
-					var rightGameObject = gameObjects[j];
-
-					if (leftGameObject.hasCollision(rightGameObject)) {
-						leftGameObject.onTrigger(rightGameObject);
-						rightGameObject.onTrigger(leftGameObject);
-					}
-				}
-			}
-        }
-
 		return Scene;
 
 	})();
